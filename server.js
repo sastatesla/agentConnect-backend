@@ -12,6 +12,7 @@ const morgan = require('morgan');
 dotenv.config();
 
 const app = express();
+app.set('trust proxy', 1);
 const httpServer = createServer(app);
 const onlineUsers = new Map(); // userId -> socketId
 
