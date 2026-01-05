@@ -18,7 +18,7 @@ const sendWhatsAppOTP = async (phone, userName, otp) => {
             buttons: [
                 {
                     type: "button",
-                    sub_type: "copy_code",
+                    sub_type: "url",
                     index: 0,
                     parameters: [
                         {
@@ -33,7 +33,7 @@ const sendWhatsAppOTP = async (phone, userName, otp) => {
         const response = await axios.post(url, payload);
 
         if (response.status === 200) {
-            console.log('WhatsApp message sent successfully', response);
+            console.log('WhatsApp message sent successfully', response.data);
             return true;
         } else {
             console.error('NeoDove API Error:', response.data);
