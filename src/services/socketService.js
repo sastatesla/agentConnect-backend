@@ -115,7 +115,7 @@ const initSocket = (httpServer) => {
                             recipient: participant._id,
                             sender: senderId,
                             type: 'message',
-                            content: content ? `New message: ${content.substring(0, 30)}...` : (media ? 'Sent a file' : 'Shared location'),
+                            content: content ? content.substring(0, 50) + (content.length > 50 ? '...' : '') : (media ? 'Sent a file' : 'Shared location'),
                             relatedId: chat._id,
                             onModel: 'Chat'
                         });

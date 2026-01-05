@@ -27,7 +27,10 @@ const updateUserProfile = catchAsync(async (req, res) => {
     user.location = req.body.location || user.location;
     user.dealsIn = req.body.dealsIn || user.dealsIn;
     if (req.body.photoUrl) user.photoUrl = req.body.photoUrl;
-    if (req.body.licenseNumber) user.licenseNumber = req.body.licenseNumber;
+    if (req.body.licenseNumber !== undefined) user.licenseNumber = req.body.licenseNumber;
+    if (req.body.isBroker !== undefined) user.isBroker = req.body.isBroker;
+    if (req.body.userType) user.userType = req.body.userType;
+    if (req.body.socialLinks) user.socialLinks = req.body.socialLinks;
 
     const updatedUser = await user.save();
 
@@ -36,12 +39,14 @@ const updateUserProfile = catchAsync(async (req, res) => {
         name: updatedUser.name,
         email: updatedUser.email,
         isBroker: updatedUser.isBroker,
+        userType: updatedUser.userType,
         photoUrl: updatedUser.photoUrl,
         bio: updatedUser.bio,
         phone: updatedUser.phone,
         location: updatedUser.location,
         dealsIn: updatedUser.dealsIn,
         licenseNumber: updatedUser.licenseNumber,
+        socialLinks: updatedUser.socialLinks,
     }, 'Profile updated successfully');
 });
 
