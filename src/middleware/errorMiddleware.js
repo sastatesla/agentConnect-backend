@@ -6,15 +6,12 @@ const errorMiddleware = (err, req, res, next) => {
 
     // Log error for developers
     if (process.env.NODE_ENV !== 'production') {
-        console.error('ERROR 💥:', err);
+        console.error('ERROR:', err);
     }
 
     errorResponse(res, err.message, err.statusCode, err);
 };
 
-/**
- * Wrapper for async functions to catch errors and pass them to next()
- */
 const catchAsync = (fn) => {
     return (req, res, next) => {
         fn(req, res, next).catch(next);

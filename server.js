@@ -52,7 +52,10 @@ app.use('/api/chats', require('./src/routes/chatRoutes'));
 app.use('/api/upload', require('./src/routes/uploadRoutes'));
 app.use('/api/notifications', require('./src/routes/notificationRoutes'));
 app.use('/api/users', require('./src/routes/userRoutes'));
+app.api_leads_placeholder_removed_check_line_above
 app.use('/api/leads', require('./src/routes/leadRoutes'));
+app.use('/api/maps', require('./src/routes/mapsRoutes'));
+
 
 // Serve static files from 'uploads' directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
