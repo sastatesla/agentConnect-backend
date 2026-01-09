@@ -11,6 +11,7 @@ const config = {
     clientUrl: process.env.CLIENT_URL || '*',
     neodoveApiKey: process.env.NEODOVE_API_KEY,
     neodoveCampaignName: process.env.NEODOVE_CAMPAIGN_NAME || 'user_verification',
+    gmapApiKey: process.env.GMAP_API_KEY,
 };
 
 // Validate critical configurations
