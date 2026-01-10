@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema({
     licenseNumber: { type: String, default: '' },
     userType: {
         type: String,
-        enum: ['Seller', 'Buyer', 'Broker', 'Lender', 'User'],
+        enum: ['User', 'Seller', 'Buyer', 'Broker', 'Lender', 'Real Estate Agent', 'Builder', 'Architect', 'Interior Designer', 'Construction Supplier', 'Investment Advisor'],
         default: 'User'
     },
     bio: { type: String, default: '' },
@@ -22,6 +22,8 @@ const userSchema = new mongoose.Schema({
         facebook: { type: String, default: '' },
         twitter: { type: String, default: '' },
     },
+    isOnline: { type: Boolean, default: false },
+    lastSeen: { type: Date, default: null },
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

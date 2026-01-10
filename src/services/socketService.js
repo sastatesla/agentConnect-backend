@@ -40,13 +40,18 @@ const initSocket = (httpServer) => {
         }
     });
 
-    io.on('connection', (socket) => {
+    io.on('connection', async (socket) => {
         const userId = socket.user._id.toString();
         console.log(`User connected: ${socket.id} (User: ${userId})`);
 
         // Automatically join personal room on connection
         socket.join(userId);
         onlineUsers.set(userId, socket.id);
+
+        // Update DB
+        try {
+            await User.findByIdAndUpdate(userId, { isOnline: true });
+        } catch (e) { console.error("Error updating online status", e); }
 
         // Broadcast online status
         io.emit('user_online', userId);
@@ -81,12 +86,24 @@ const initSocket = (httpServer) => {
                         await chat.save();
                     }
                 } else if (participants) {
-                    // Create new chat
-                    chat = await Chat.create({
-                        participants,
-                        messages: [{ sender: senderId, content, post: postId, media, location }]
-                    });
-                    chat = await Chat.findById(chat._id).populate('participants');
+                    // Check for existing chat first
+                    chat = await Chat.findOne({
+                        participants: { $all: participants }
+                    }).populate('participants');
+
+                    if (!chat) {
+                        // Create new chat
+                        chat = await Chat.create({
+                            participants,
+                            messages: [{ sender: senderId, content, post: postId, media, location }]
+                        });
+                        chat = await Chat.findById(chat._id).populate('participants');
+                    } else {
+                        // Append to existing chat
+                        chat.messages.push({ sender: senderId, content, post: postId, media, location });
+                        chat.lastMessageAt = Date.now();
+                        await chat.save();
+                    }
                 }
 
                 if (chat) {
@@ -142,9 +159,15 @@ const initSocket = (httpServer) => {
             socket.to(chatId).emit('user_stop_typing', { chatId, senderId: userId });
         });
 
-        socket.on('disconnect', () => {
+        socket.on('disconnect', async () => {
             console.log('User disconnected:', socket.id);
             onlineUsers.delete(userId);
+
+            // Update DB
+            try {
+                await User.findByIdAndUpdate(userId, { isOnline: false, lastSeen: new Date() });
+            } catch (e) { console.error("Error updating offline status", e); }
+
             io.emit('user_offline', userId);
             io.emit('online_users', Array.from(onlineUsers.keys()));
         });

@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Post = require('../models/Post');
 const Report = require('../models/Report');
 const City = require('../models/City');
@@ -10,7 +11,7 @@ const QueryHelper = require('../utils/queryHelper');
 // @route   GET /api/posts
 // @access  Public
 const getPosts = catchAsync(async (req, res) => {
-    const { location, type, search, author, savedBy, page = 1, limit = 10, status } = req.query;
+    const { location, type, search, author, savedBy, page = 1, limit = 10, status, intent, category } = req.query;
 
     // Build initial match query
     let matchQuery = {};
@@ -24,14 +25,22 @@ const getPosts = catchAsync(async (req, res) => {
     if (location) {
         matchQuery.location = { $regex: location, $options: 'i' };
     }
-    if (type && type !== 'All') {
-        matchQuery.type = type;
+
+    // Type Filtering (Intent & Category)
+    if (intent && category) {
+        matchQuery.type = `${intent} - ${category}`;
+    } else if (intent) {
+        matchQuery.type = { $regex: `^${intent}`, $options: 'i' };
+    } else if (category) {
+        matchQuery.type = { $regex: `${category}$`, $options: 'i' };
+    } else if (type && type !== 'All') {
+        matchQuery.type = type; // Legacy support or direct type match
     }
     if (author) {
-        matchQuery.author = author;
+        matchQuery.author = new mongoose.Types.ObjectId(author);
     }
     if (savedBy) {
-        matchQuery.savedBy = { $in: [savedBy] };
+        matchQuery.savedBy = { $in: [new mongoose.Types.ObjectId(savedBy)] };
     }
 
     const fieldsToSearch = ['title', 'body', 'tags', 'location', 'type'];
@@ -120,13 +129,14 @@ const updatePost = catchAsync(async (req, res) => {
         throw new ApiError('Not authorized', 401);
     }
 
-    const { title, body, type, location, price, images, links, tags } = req.body;
+    const { title, body, type, location, price, priceUnit, images, links, tags } = req.body;
 
     post.title = title || post.title;
     post.body = body || post.body;
     post.type = type || post.type;
     post.location = location || post.location;
     post.price = price !== undefined ? price : post.price;
+    post.priceUnit = priceUnit || post.priceUnit;
     post.images = images || post.images;
     post.links = links || post.links;
     post.tags = tags || post.tags;

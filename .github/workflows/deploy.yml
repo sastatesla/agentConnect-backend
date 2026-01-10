@@ -1,0 +1,79 @@
+name: Build and Deploy to Google Compute Engine
+
+on:
+  push:
+    branches:
+      - main
+      - devops/prod
+      - devops/staging
+      - devops/qa
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  SERVICE_NAME: agent-connect-backend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set Environment Variables
+        id: env_vars
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/devops/prod" ]] || [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "INSTANCE_NAME=${{ secrets.GCE_INSTANCE_NAME_PROD }}" >> $GITHUB_ENV
+            echo "ZONE=${{ secrets.GCE_INSTANCE_ZONE_PROD }}" >> $GITHUB_ENV
+            echo "DEPLOY_ENV=production" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == "refs/heads/devops/staging" ]]; then
+            echo "INSTANCE_NAME=${{ secrets.GCE_INSTANCE_NAME_STAGING }}" >> $GITHUB_ENV
+            echo "ZONE=${{ secrets.GCE_INSTANCE_ZONE_STAGING }}" >> $GITHUB_ENV
+            echo "DEPLOY_ENV=staging" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == "refs/heads/devops/qa" ]]; then
+            echo "INSTANCE_NAME=${{ secrets.GCE_INSTANCE_NAME_QA }}" >> $GITHUB_ENV
+            echo "ZONE=${{ secrets.GCE_INSTANCE_ZONE_QA }}" >> $GITHUB_ENV
+            echo "DEPLOY_ENV=qa" >> $GITHUB_ENV
+          else
+             echo "INSTANCE_NAME=${{ secrets.GCE_INSTANCE_NAME_PROD }}" >> $GITHUB_ENV
+             echo "ZONE=${{ secrets.GCE_INSTANCE_ZONE_PROD }}" >> $GITHUB_ENV
+             echo "DEPLOY_ENV=production" >> $GITHUB_ENV
+          fi
+
+      - name: Google Auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker
+
+      - name: Build and Push Docker Image
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          docker build -t gcr.io/$PROJECT_ID/$SERVICE_NAME:$IMAGE_TAG .
+          docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:$IMAGE_TAG
+
+      - name: Deploy to Compute Engine
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          echo "Deploying to $DEPLOY_ENV ($INSTANCE_NAME)..."
+          
+          gcloud compute ssh $INSTANCE_NAME --zone=$ZONE --command="
+            gcloud auth configure-docker -q &&
+            docker pull gcr.io/$PROJECT_ID/$SERVICE_NAME:$IMAGE_TAG &&
+            docker stop $SERVICE_NAME || true &&
+            docker rm $SERVICE_NAME || true &&
+            docker run -d --name $SERVICE_NAME \
+              --restart always \
+              -p 80:5000 \
+              -e NODE_ENV=$DEPLOY_ENV \
+              -e GMAP_API_KEY='${{ secrets.GMAP_API_KEY }}' \
+              -e MONGO_URI='${{ secrets.MONGO_URI }}' \
+              -e JWT_SECRET='${{ secrets.JWT_SECRET }}' \
+              gcr.io/$PROJECT_ID/$SERVICE_NAME:$IMAGE_TAG
+          "

@@ -6,6 +6,11 @@ const postSchema = new mongoose.Schema({
     type: { type: String, required: true }, // e.g., Residential, Commercial
     location: { type: String, required: true }, // City/State
     price: { type: Number }, // Price in default currency (INR)
+    priceUnit: {
+        type: String,
+        enum: ['per_unit', 'per_sqft', 'per_yard', 'per_bigha', 'per_acre', 'per_month', 'per_year'],
+        default: 'per_unit'
+    },
     tags: [{ type: String }], // Search tags
     images: [{ type: String }], // Array of image URLs
     links: [{ title: String, url: String }], // External links
